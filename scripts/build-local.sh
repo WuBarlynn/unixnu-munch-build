@@ -23,6 +23,11 @@ DEVICE_NAME=munch
 DEFCONFIG=munch_defconfig
 OS_PROFILE=ipados-17.7.11-21H461
 OUT=$WORK/UniXNU/out/$DEVICE_NAME/$OS_PROFILE/$DEVICE_NAME
+# The UniXNU commit this port is qualified against. Upstream HEAD moved to a
+# commit whose drivers/GopFramebuffer pin is not public (submodule update fails
+# with "not our ref"), and a moving driver would invalidate the two-pass kernel
+# and the archives. Set UNIXNU_REF= to follow upstream again on purpose.
+UNIXNU_REF=${UNIXNU_REF-476ada3f2dc7d764e57ef9bac014f14342c30360}
 
 say() { printf '\n== %s\n' "$*"; }
 need() { command -v "$1" >/dev/null || { echo "missing tool: $1" >&2; exit 1; }; }
@@ -40,12 +45,21 @@ mkdir -p "$WORK"
 say "work directory: $WORK"
 
 clone() {
-  local dir=$1 url=$2
+  # $3, when given, pins the checkout to one commit instead of following the branch.
+  local dir=$1 url=$2 ref=${3:-}
   if [ -d "$dir/.git" ]; then
     # The script pins the generated Data-seed UUID into the tracked defconfig on
     # every run, so a pull would refuse to start; the value is regenerated below.
     git -C "$dir" checkout -- configs/munch_defconfig 2>/dev/null || true
-    git -C "$dir" pull --ff-only
+    if [ -n "$ref" ]; then
+      git -C "$dir" fetch -q origin
+      git -C "$dir" checkout -q "$ref"
+    else
+      git -C "$dir" pull --ff-only
+    fi
+  elif [ -n "$ref" ]; then
+    git clone -q "$url" "$dir"
+    git -C "$dir" checkout -q "$ref"
   else
     git clone --recurse-submodules "$url" "$dir"
   fi
@@ -56,7 +70,7 @@ clone() {
 }
 
 say 'checkout'
-clone "$WORK/UniXNU" https://github.com/FFT-infra/UniXNU.git
+clone "$WORK/UniXNU" https://github.com/FFT-infra/UniXNU.git "$UNIXNU_REF"
 clone "$WORK/device" https://github.com/WuBarlynn/unixnu-munch.git
 clone "$WORK/uefi" https://github.com/FFT-infra/uefi-alioth.git
 

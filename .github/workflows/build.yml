@@ -49,7 +49,8 @@ env:
   # produced without the manual dispatch form.
   WANT_USERDATA: ${{ (inputs.userdata || contains(github.ref_name, '-ud')) && 'true' || 'false' }}
   UNIXNU_REPO: FFT-infra/UniXNU
-  UNIXNU_REF: main
+  # Pinned: upstream HEAD bddf670 pins a drivers/GopFramebuffer commit that is not public.
+  UNIXNU_REF: 476ada3f2dc7d764e57ef9bac014f14342c30360
   UEFI_REPO: FFT-infra/uefi-alioth
   UEFI_REF: main
   DEVICE_NAME: munch
